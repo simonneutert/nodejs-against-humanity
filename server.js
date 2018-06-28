@@ -1,4 +1,6 @@
 var express = require('express');
+var methodOverride = require('method-override')
+var bodyParser = require('body-parser')
 var app = express()
 var server = require('http').createServer(app);
 var Game = require('./game.js')
@@ -7,13 +9,14 @@ var io = require('socket.io').listen(server);
 var _ = require('underscore');
 
 server.listen(process.env.PORT || 3000);
-
 app.set('view engine', 'ejs');
 app.set('view options', { layout: false });
-app.use(express.methodOverride());
-app.use(express.bodyParser());  
-app.use(app.router);
-app.use('/public', express.static('public'));
+app.use(methodOverride());
+app.use(bodyParser.urlencoded({
+  extended: true
+}));
+app.use(bodyParser.json());
+
 
 function json(o, res) {
   res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -50,6 +53,8 @@ io.sockets.on('connection', function(socket) {
   });
 });
 
+app.use(express.static(__dirname + "/public/"));
+
 app.get('/', function (req, res) { res.render('index'); });
 app.get('/game', function (req, res) { res.render('game'); });
 app.get('/list', function (req, res) { json(Game.list(), res); });
@@ -65,8 +70,8 @@ app.post('/joingame', function (req, res) {
     res.write(JSON.stringify({ error: "too many players" }));
     res.end();
     return null;
-  }	
-  
+  }
+
   game = Game.joinGame(game, { id: req.body.playerId, name: req.body.playerName });
   returnGame(req.body.gameId, res);
 });
